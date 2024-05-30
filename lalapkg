@@ -65,7 +65,7 @@ downloader_method="wget"
 
 #|==============================| LOAD CONFIG
 # Carregando arquivo de configuração
-if ! . ./lalapkg.conf; then
+if ! . /etc/lalapkg.conf; then
 	echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: lalapkg.conf not found" # Se o arquivo de configuração nao existir vai cair dentro do if
 	exit 1
 fi
