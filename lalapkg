@@ -36,6 +36,8 @@
 #|								      |
 #|* Pacotes instalados e pacotes que falharam seram mostrados no      |
 #|  final da execução						      |
+#|								      |
+#|* Parâmetros --version adicionado				      |
 #|====================================================================|
 
 #|==============================| VAR
@@ -747,6 +749,11 @@ case "$1" in
 
 	--help|-h)
 		HELP # Chama menu de uso
+		exit 0
+	;;
+
+	--version|-v)
+		echo "Version: $VERSION :D"
 		exit 0
 	;;
 
