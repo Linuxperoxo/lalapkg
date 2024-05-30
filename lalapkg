@@ -15,29 +15,32 @@
 #|concentrado na compilação de todos os pacotes, porém, pretendo      |
 #|adicionar suporte para pacotes pré-compilados.                      |
 #|==========================CHANGE-LOG================================|
-#|* Função sync adicionada				              |
+#| 2.0:								      |
+#|	* Função sync adicionada				      |
 #|								      |
-#|* Função info adicionada				      	      |
+#|	* Função info adicionada				      |
 #|								      |
-#|* Melhorias no código focando na eficiencia		      	      |
+#|	* Melhorias no código focando na eficiencia		      |
 #|								      |
-#|* Função cleardir adicionada                                        |
+#|	* Função cleardir adicionada                                  |
 #|								      |
-#|* Melhora no menu help					      |
+#|	* Melhora no menu help					      |
 #|								      |
-#|* Suporte ao sync via git ou http(servidor próprio no momen-        |
-#|  to não está disponivel para todo o público, apenas localhost)     |
+#|	* Suporte ao sync via git ou http(servidor próprio no momen-  |
+#|  	to não está disponivel para todo o público, apenas localhost) |
 #|								      |
-#|* Correções de pequenos bugs				      	      |
+#| 2.1								      |
+#|	* Correções de pequenos bugs				      |
 #|								      |
-#|* Correção de bug critico na case --unmerge                         |
+#| 2.2								      |
+#|	* Correção de bug critico na case --unmerge                   |
 #|								      |
-#|* Suporte a pesquisa de pacotes no repositorio custom	      	      |
+#|	* Suporte a pesquisa de pacotes no repositorio custom	      |
 #|								      |
-#|* Pacotes instalados e pacotes que falharam seram mostrados no      |
-#|  final da execução						      |
+#|	* Pacotes instalados e pacotes que falharam seram mostrados   |
+#|  	no final da execução					      |
 #|								      |
-#|* Parâmetros --version adicionado				      |
+#|	* Parâmetros --version adicionado			      |
 #|====================================================================|
 
 #|==============================| VAR
