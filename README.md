@@ -6,16 +6,22 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 
 ## Log de Alterações
 
+2.0)
 - Função sync adicionada
 - Função info adicionada
 - Melhorias no código focando na eficiência
 - Função cleardir adicionada
 - Melhora no menu help
 - Suporte ao sync via git ou http (servidor próprio não está disponível para todo o público, apenas localhost)
+
+2.1:
 - Correções de pequenos bugs
+
+2.2:
 - Correção de bug crítico na case --unmerge
 - Suporte a pesquisa de pacotes no repositório custom
 - Pacotes instalados e pacotes que falharam serão mostrados no final da execução
+- Parâmetros --version adicionado
 
 ## Instalar
 
