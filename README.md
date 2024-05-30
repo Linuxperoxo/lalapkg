@@ -6,7 +6,7 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 
 ## Log de Alterações
 
-2.0)
+2.0:
 - Função sync adicionada
 - Função info adicionada
 - Melhorias no código focando na eficiência
