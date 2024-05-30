@@ -1,22 +1,24 @@
 #!/bin/bash
-#========================|VAR
+#
+#=======================| VAR
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
 INPUT='0'
-#========================|VERIFY
+#=======================| VERIFY
 if [ ! "$(whoami)" = 'root' ]; then
 	echo "U are root?"
 	exit
 fi
-#========================| FUNC
+#=======================| FUNC
 function INSTALL()
 {
 	if [ ! -f './lalapkg' ] || [ ! -f './lalapkg.conf' ]; then
-		git clone https://github.com/Linuxperoxo/lalapkg.git
-		cd lalapkg
+		git clone https://github.com/Linuxperoxo/lalapkg.git /tmp/lalapkg
+		cp -vr /tmp/lalapkg/* .
+		rm -rf /tmp/lalapkg
 	fi
 
 	cp -v 'lalapkg'  '/usr/bin/'
@@ -31,14 +33,14 @@ function REMOVE()
 	rm -v '/usr/bin/lalapkg'
 	rm -v '/etc/lalapkg.conf'
 }
-#========================| MAIN
+#=======================| MAIN
+
 case "$1" in
 	--install)
 		if [ -f '/usr/bin/lalapkg' ] && [ -f '/etc/lalapkg.conf' ]; then
 			while true; do
 				echo -n -e ">>> ${YELLOW}WARNING${NC}: Lalapkg is installed on your system. Do you want to reinstall? y/N "
 				read INPUT
-				echo
 				case "$INPUT" in
 					Y|y)
 						break
@@ -67,6 +69,6 @@ case "$1" in
 
 	*)
 		echo "Use --install or --remove"
-		exit  0
+		exit 1
 	;;
 esac
