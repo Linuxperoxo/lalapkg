@@ -507,7 +507,7 @@ EMERGE()
 
 
 #|==============================| MAIN
-[ -z "$1" ] && echo "Version: $VERSION" && echo -e "${RED}>>>${NC} Use -h or --help and have fun!" # Verificando se o usuario colocou algum argumento na chamado do lalapkg
+[ -z "$1" ] && echo "Version: $VERSION" && echo -e "${RED}>>>${NC} Use -h or --help and have fun!" && exit 1 # Verificando se o usuario colocou algum argumento na chamado do lalapkg
 
 case "$1" in
 	--emerge)
