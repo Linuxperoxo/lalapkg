@@ -37,12 +37,12 @@ cd /opt/lalapkg
 
 ## Instruções de Uso
 
---emerge <pacote1> <pacote2> ...: Instalação do pacote(s)
---unmerge <pacote1> <pacote2> ...: Remoção do pacote(s)
---sync: Sincronização com o repositório
---info <pacote>: Exibe informações sobre um pacote
---cleardir: Limpa os diretórios desnecessários
---search <pacote>: Procura por um pacote
+- --emerge <pacote1> <pacote2> ...: Instalação do pacote(s)
+- --unmerge <pacote1> <pacote2> ...: Remoção do pacote(s)
+- --sync: Sincronização com o repositório
+- --info <pacote>: Exibe informações sobre um pacote
+- --cleardir: Limpa os diretórios desnecessários
+- --search <pacote>: Procura por um pacote
 
 ## Licença
 
