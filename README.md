@@ -24,13 +24,13 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 - Parâmetros --version adicionado
 
 2.3:
-- Simples resolução de Dependências
+- Simples resolução de dependências
+- Nova configuração 'root_dir' em lalapkg.conf
 - Fakeroot adicionado (Fakeroot serve para você 'mentir' o
   diretório raiz do seu sistema. Se você passar '/tmp/fakeroot'
   para a variável 'root_dir' no arquivo 'lalapkg.conf', '/tmp/fakeroot'
   será tratada como '/'. Isso facilita bastante na "compilação cruzada")
 - Função --noask adicionada
-- Nova configuração 'root_dir' em lalapkg.conf
 - Correções de bugs
 - Pequenas melhorias no código
 
