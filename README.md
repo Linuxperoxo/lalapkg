@@ -30,6 +30,7 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
   para a variável 'root_dir' no arquivo 'lalapkg.conf', '/tmp/fakeroot'
   será tratada como '/'. Isso facilita bastante na compilação cruzada)
 - Função --noask adicionada
+- Nova configuração 'root_dir' em lalapkg.conf
 - Correções de bugs
 - Melhorias no código
 
