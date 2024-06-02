@@ -23,6 +23,16 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 - Pacotes instalados e pacotes que falharam serão mostrados no final da execução
 - Parâmetros --version adicionado
 
+2.3:
+- Simples resolução de Dependências
+- Fakeroot adicionado (Fakeroot serve para você 'mentir' o
+  diretório raiz do seu sistema. Se você passar '/tmp/fakeroot'
+  para a variável 'root_dir' no arquivo 'lalapkg.conf', '/tmp/fakeroot'
+  será tratada como '/'. Isso facilita bastante na compilação cruzada)
+- Função --noask adicionada
+- Correções de bugs
+- Melhorias no código
+
 ## Instalar
 
 cd /opt
@@ -49,6 +59,7 @@ cd /opt/lalapkg
 - --info <pacote>: Exibe informações sobre um pacote
 - --cleardir: Limpa os diretórios desnecessários
 - --search <pacote>: Procura por um pacote
+- --noask Todas as perguntas são ignoradas
 
 ## Licença
 
