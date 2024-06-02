@@ -4,7 +4,7 @@
 
 Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, compatível com praticamente qualquer distribuição que utilize o bash como shell padrão. No momento, o gerenciador está concentrado na compilação de todos os pacotes.
 
-## Log de Alterações
+## Changelog
 
 2.0:
 - Função sync adicionada
