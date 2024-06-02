@@ -14,33 +14,6 @@
 #|utilize o bash como shell padrão. No momento, o gerenciador está    |
 #|concentrado na compilação de todos os pacotes, porém, pretendo      |
 #|adicionar suporte para pacotes pré-compilados.                      |
-#|==========================CHANGE-LOG================================|
-#| 2.0:								      |
-#|	* Função sync adicionada				      |
-#|								      |
-#|	* Função info adicionada				      |
-#|								      |
-#|	* Melhorias no código focando na eficiencia		      |
-#|								      |
-#|	* Função cleardir adicionada                                  |
-#|								      |
-#|	* Melhora no menu help					      |
-#|								      |
-#|	* Suporte ao sync via git ou http(servidor próprio no momen-  |
-#|  	to não está disponivel para todo o público, apenas localhost) |
-#|								      |
-#| 2.1								      |
-#|	* Correções de pequenos bugs				      |
-#|								      |
-#| 2.2								      |
-#|	* Correção de bug critico na case --unmerge                   |
-#|								      |
-#|	* Suporte a pesquisa de pacotes no repositorio custom	      |
-#|								      |
-#|	* Pacotes instalados e pacotes que falharam seram mostrados   |
-#|  	no final da execução					      |
-#|								      |
-#|	* Parâmetros --version adicionado			      |
 #|====================================================================|
 
 #|==============================| VAR
@@ -49,7 +22,7 @@ export LC_ALL=C
 export LANG=C
 
 # Versão
-VERSION='2.2 :D'
+VERSION='2.3:D'
 
 # Variavel apenas para pegar input do usuario usando o read :^)
 INPUT='0'
@@ -78,8 +51,8 @@ fi
 [ "$(whoami)" != 'root' ] && { echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Are you root?"; exit 1; } # Verifica se o usuario é sudo
 
 # Verificando se as variaveis do arquivo de configuração existem
-CHECK_VAR=("$source_dir" "$fakeroot_dir" "$sync" "$custom_repo" "$common_flags" "$jobs") 
-NAME_VAR=('source_dir' 'fakeroot_dir' 'sync' 'custom_repo' 'common_flags' 'jobs')
+CHECK_VAR=("$source_dir" "$fakeroot_dir" "$sync" "$root_dir" "$custom_repo" "$common_flags" "$jobs") 
+NAME_VAR=('source_dir' 'fakeroot_dir' 'sync' 'root_dir' 'custom_repo' 'common_flags' 'jobs')
 index='-1'
 
 for i in "${CHECK_VAR[@]}"; do
@@ -93,7 +66,7 @@ for i in "${CHECK_VAR[@]}"; do
 done
 
 # Verificando se os diretorios existem
-CHECK_DIR=("$sync_dir" "$source_dir" "$fakeroot_dir" "$world_dir")
+CHECK_DIR=("$sync_dir" "$source_dir" "$fakeroot_dir" "${root_dir}${world_dir}")
 NAME_DIR=('sync_dir' 'source_dir' 'fakeroot_dir' 'world_dir')
 index='-1'
 
@@ -103,14 +76,16 @@ for p in "${CHECK_DIR[@]}"; do
 	[ "${NAME_DIR[$index]}" = 'sync_dir' ] && [ ! -d "${p}" ] && echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: main_repo directory -> ${GREEN}$main_repo${NC} does not exist, use ${GREEN}lalapkg --sync${NC}" && sleep 1 # Se o repo main nao existir vai alertar o usuario
 
 	if [ ! -d "${p}" ]; then
-		echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Creating directory ${GREEN}${p}${NC}... " # Criação de diretorios 
-        	sleep 0.5
-        	if ! mkdir -p "$p"; then
-        		echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Failed to create the directory ${GREEN}$p${NC} :/"
-                	exit 1
+		echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Creating directory ${GREEN}${p}${NC}... " 
+        sleep 0.5
+        if ! mkdir -p "$p"; then # Criação de diretorios 
+        	echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Failed to create the directory ${GREEN}$p${NC} :/"
+            exit 1
 		fi
 	fi
 done
+
+world_dir="${root_dir}${world_dir}"
 
 # Verificando comandos
 CHECK_COMMAND=('wget' 'git')
@@ -131,6 +106,12 @@ for f in "${CLEAR_DIR[@]}"; do
 		echo 
 	fi
 done
+
+
+if [ "$root_dir" != '/' ]; then # Verificando se o usuario esta usando o fakeroot
+	echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Variable ${GREEN}root_dir${NC} is pointing to ${GREEN}$root_dir${NC}, ${RED}this directory will be interpreted as '/' ${NC}"
+	sleep 0.5
+fi
 
 #|==============================| FUNCTION
 CHECK_PKG()
@@ -170,9 +151,11 @@ HELP()
     	echo -e "  ${GREEN}--emerge${NC} ${RED}<package1> <package2>${NC} ...  ${YELLOW}Install package(s)${NC}"
     	echo -e "  ${GREEN}--unmerge${NC} ${RED}<package1> <package2>${NC} ... ${YELLOW}Remove package(s)${NC}"
     	echo -e "  ${GREEN}--sync${NC}                              ${YELLOW}Sync with repository${NC}"
-    	echo -e "  ${GREEN}--info${NC} ${RED}<package>${NC}                    ${YELLOW}Display information about a package${NC}"
+		echo -e "  ${GREEN}--info${NC} ${RED}<package>${NC}                    ${YELLOW}Display information about a package${NC}"
     	echo -e "  ${GREEN}--cleardir${NC}                          ${YELLOW}Clean up unnecessary files in directories${NC}"
     	echo -e "  ${GREEN}--search${NC} ${RED}<package>${NC}                  ${YELLOW}Search for a package${NC}"
+		echo -e "  ${GREEN}--noask${NC} ${YELLOW} ${YELLOW}Questions will be ignored(s)${NC}"
+		echo -e "  	${YELLOW}EXAMPLE${NC}:${GREEN}--emerge --noask${NC} ${RED}<package1> <package2>${NC}"
 }
 
 CLEARDIR()
@@ -192,14 +175,12 @@ CHECK_SCRIPT()
 	# Função que faz a verificação do script de construção 
 	local dir="$1"
 
-	echo
-	echo -e ">>> ${GREEN}CHECKING SYNTAX${NC}: $dir/$script_name"
-	echo
+	#echo -e "=== ${GREEN}CHECKING SYNTAX${NC}: $dir/$script_name"
 
 	# Primeira verificação é ver se o arquivo existe e se ele é realmente um arquivo 
 	if [ ! -f "$dir/$script_name" ]; then
 		echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: File ${GREEN}$PKG/$script_name${NC} not found :/"
-                return 1
+        return 1
 	fi
 
 	# Se ele existir vamos carregar ele
@@ -207,14 +188,21 @@ CHECK_SCRIPT()
 
 	# Segunda verificação e ver se as veriaveis importantes está sendo usadas
 	local CHECK_VAR=("$name" "$version" "$extension" "$source_url" "$use_tools")
-	local NAME_VAR=('name' 'version' 'extension' 'source_url' 'use_tools')
+	local NAME_VAR=('name' 'version'  'extension' 'source_url' 'use_tools')
 	local index='-1'
+
+	unset TAR # Não dar unset nessa variavel prejudica os outros pacotes que estao na fila
 
 	for f in "${CHECK_VAR[@]}"; do
 		((index++))
-		if [ -z "$f" ]; then # Verificando variavel
-			echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: ${GREEN}${NAME_VAR[$index]}${NC} var is not set in ${GREEN}$dir/$script_name${NC}" # Se nao estiver sendo usada vai sair
-			return 1
+		if	[ -z "$f" ]; then # Verificando se a variavel está vazia
+			if [ "${NAME_VAR[$index]}" = 'extension' ]; then
+				echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Variable ${GREEN}extension${NC} is not being used in ${GREEN}$dir/$script_name${NC}, ${RED}TAR WILL NOT BE USED!${NC}"
+				TAR='1'
+			else
+				echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: ${GREEN}${NAME_VAR[$index]}${NC} var is not set in ${GREEN}$dir/$script_name${NC}" # Se nao estiver sendo usada vai sair
+				return 1
+			fi
 		fi
 
 		# Verificando se a variavel use_tools é Y ou N 
@@ -261,7 +249,7 @@ SEARCH()
 		fi
 	done
 
-	[ ! -d "$custom_repo" ] && { echo -e ">>> [${YELLOW}***${NC}] WARNING: ${GREEN}$custom_repo${NC} is not a directory, use ${GREEN}mkdir -p ${custom_repo}${NC}"; return 1 ;}
+	[ ! -d "$custom_repo" ] && { echo -e ">>> [${YELLOW}***${NC}] WARNING: ${GREEN}$custom_repo${NC} is not a directory, use ${GREEN}mkdir -p ${custom_repo}${NC}"; return 1 ;} # Verificando de o custom_repo é um diretorio
 
 	# Entrando no diretorio custom
 	cd "$custom_repo"
@@ -303,10 +291,7 @@ INFO()
 
 CREATEPKG()
 {
-
-	echo
-	echo -e ">>> ${GREEN}STARTING CREATEPKG${NC}: $name-$version"
-	echo
+	echo -e "=== ${GREEN}STARTING CREATEPKG${NC}: $name-$version"
 
 	cd "$fakeroot_dir/$name" # Indo para o diretorio do software que acabou de ser compilado
 	if ! tar cvzf "../$name-$version.lala.tar.gz" .; then # Compactando tudo em um pacote .lala.tar.gz
@@ -335,9 +320,7 @@ SYNC()
 		exit 1
 	fi
 
-	echo
-	echo -e ">>> ${GREEN}STARTING SYNC${NC}..."
-	echo
+	echo -e "=== ${GREEN}STARTING SYNC${NC}..."
 
 	case "$sync" in
 		git)
@@ -367,7 +350,6 @@ SYNC()
 			# Copiando o repositorio recem baixado para o local certo
 			cd main-repo && cp -vr main "$sync_dir"
 
-			echo
 			echo -e ">>> ${GREEN}Successfully synchronized :D${NC}"
 			echo
 		;;
@@ -399,9 +381,8 @@ SYNC()
 			# Copiando o repositorio recem baixado para o local certo
 			tar xpvf lalapkg-main_repo.tar.gz -C "$sync_dir"
 
-			echo
-                        echo -e ">>> ${GREEN}Successfully synchronized :D${NC}"
-                        echo
+        	echo -e ">>> ${GREEN}Successfully synchronized :D${NC}"
+            echo
 		;;
 	esac
 }
@@ -411,15 +392,15 @@ REMOVEPKG()
 	local PKG="$1"
 
 	while IFS= read thefile; do # Loop while recebendo uma lista que no caso é um .world
-		if [ -f "$thefile" ]; then # Se ele é um file
-			rm "$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${GREEN}DELETED${NC}: ${RED}$thefile${NC}"
-		elif [ -L "$thefile" ]; then # Se ele é um link
-			unlink "$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${GREEN}UNLINK${NC}: ${RED}$thefile${NC}"
+		if [ -f "$root_dir/$thefile" ]; then # Se ele é um file
+			rm "$root_dir/$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}DELETED${NC}: ${RED}$thefile${NC}"
+		elif [ -L "$root_dir/$thefile" ]; then # Se ele é um link
+			unlink "$root_dir/$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}UNLINK${NC}: ${RED}$thefile${NC}"
 		fi
 	done < "$PKG" # Lista que esta sendo usada
 
 	while IFS= read thedir; do  # Loop while recebendo uma lista que no caso é um .world
-		rm -d "$thedir" 1> /dev/null 2> /dev/null && echo ">>> ${GREEN}DELETED DIRECTORY${NC}: ${RED}$thedir${NC}" # Deletando por fim os diretorios
+		rm -d "$thedir" 1> /dev/null 2> /dev/null && echo ">>> ${YELLOW}DELETED DIRECTORY${NC}: ${RED}$thedir${NC}" # Deletando por fim os diretorios
 	done < "$PKG"
 
 	rm "$PKG" # Removendo o .world
@@ -429,17 +410,15 @@ INSTALL()
 {
 	local PKG="$1"
 
-	echo
-	echo -e ">>> ${GREEN}STARTING INSTALLATION${NC}: $PKG"
+	echo -e "=== ${GREEN}STARTING INSTALLATION${NC}: $PKG"
 	echo
 
-	if ! tar xpvf "$PKG" -C / > "${world_dir}/${name}.world"; then # Descompactando na raiz e jogando a saida para o arquivo .world que vai ser usado para remover os arquivos jogados na raiz
+	if ! tar xpvf "$PKG" -C $root_dir > "${world_dir}/${name}.world"; then # Descompactando na raiz e jogando a saida para o arquivo .world que vai ser usado para remover os arquivos jogados na raiz
 		echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Error installing -> ${GREEN}$name-$version${NC}" 
 		return 1
 	fi
 
-	echo
-        echo -e ">>> ${GREEN}STARTING DEEPCLEAN${NC}: $name-$version"
+    echo -e "=== ${GREEN}STARTING DEEPCLEAN${NC}: $name-$version"
 	echo
 
 	if ! sed -i 's,\.\/,/,g; /^$/d' "${world_dir}/${name}.world"; then # Usando o sed para melhorar o .world
@@ -456,29 +435,35 @@ EMERGE()
 	export CFLAGS="${common_flags}"
 	export CXXFLAGS="${common_flags}"
 	export MAKEFLAGS="$jobs"
-	export FAKEROOT="$fakeroot_dir"
+	export FAKEROOT="$fakeroot_dir/$name"
 
 	cd "$source_dir"
 
 	[ -d "$name-$version" ] && rm -rf "$name-$version"
 
 	if [ ! -f "./$name-$version.$extension" ]; then
-		echo -e ">>> ${GREEN}STARTING DOWNLOAD${NC}: $source_url"
-		if ! $($downloader_method -O $name-$version.$extension $source_url); then
+		echo
+		echo -e "=== ${GREEN}STARTING DOWNLOAD${NC}: $source_url"
+		if ! $($downloader_method -O $name-$version.$extension $source_url); then # Caso o download falhe por algum motivo
 			echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Unable to complete the download" && rm -rf "$name-$version.$extension"
 			return 1
+		else
+			echo -e ">>> [${GREEN}***${NC}] ${GREEN}SUCCESS${NC}: Source downloaded"
+			echo
 		fi
 	fi
 
-	echo -e ">>> [${GREEN}***${NC}] ${GREEN}SUCCESS${NC}: Source downloaded"
-        echo
-	echo -e ">>> ${GREEN}STARTING UNPACK${NC}: $name-$version.$extension"
-	echo
-
-	if ! tar xpvf "$name-$version.$extension"; then # Descompactando source tarball
-		# Caso o tar falhe o alerta de error vai ser executado e o source tarball será deletado
-		echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Was not possible to unpack using tar" && rm -rf "$name-$version.$extension" #
-		return 1
+	if [ "$TAR" != '1' ]; then # Verificando se o tar vai ser usado nesse pacote
+		echo -e "=== ${GREEN}STARTING UNPACK${NC}: $name-$version.$extension"
+		echo
+		if ! tar xpvf "$name-$version.$extension"; then # Descompactando source tarball
+			# Caso o tar falhe o alerta de error vai ser executado e o source tarball será deletado
+			echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Was not possible to unpack using tar" && rm -rf "$name-$version.$extension" #
+			return 1
+		fi
+	else
+		echo -e ">>> ${RED}SKIPING UNPACK${NC}: $name-$version"
+		echo
 	fi
 
 	if [ "$pos_install" = '0' ]; then # Verificando se o script tem a função pos_install
@@ -486,17 +471,16 @@ EMERGE()
 	else
 		local functions=('pre_build' 'build' 'install')
 		echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Function ${GREEN}pos_install${NC} is not found in ${GREEN}$PKG/$script_name${NC} file"
-		sleep 0.5
 	fi
 
 	for k in "${functions[@]}"; do
 		if "$k"; then # Se a função ocorrer bem vai entrar nesse if
 			if [ "$k" = 'build' ]; then # Caso o nome da função que passou sem error for build
 				echo -e ">>> [${GREEN}***${NC}] ${GREEN}SUCCESS${NC}: Compiled successfully -> $name-$version "
-	       			sleep 0.2
+	       		sleep 0.2
 			elif [ "$k" = 'install' ]; then # Caso o nome da função que passou sem error for install
-				echo -e ">>> [${GREEN}***${NC}] ${GREEN}SUCCESS${NC}: Bin installed successfully in -> $name-$version"
-        			sleep 0.2
+				echo -e ">>> [${GREEN}***${NC}] ${GREEN}SUCCESS${NC}: Bin installed successfully in -> $name-$version" 
+        		sleep 0.2
 			fi
 		else
 			# Em casos de erro em alguma função ele cai aqui
@@ -505,14 +489,186 @@ EMERGE()
 		fi
 	done
 
-	rm -rf "$name-$version"
+	cd "$source_dir"
+
+	[ -d "$name-$version" ] && rm -rf "$name-$version" # Verificando se ficou arquivos no sistema do usuario 
 
 	return 0
 }
 
+INSTALL_PKG()
+{
+	local PKG="$1"
+	
+	if ! CHECK_PKG "$PKG"; then # Verificando se o script existe e pegando sua localização que fica armazenada em localepkg
+		echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$PKG${NC} not found in any repository"
+		echo
+		pkgfail+=("$PKG") # Se algum pacote nao foi instalado com sucesso
+		ERROR='1'
+	else
+		ERROR='0'
+		SomeInst='0'
+		COMPILE='1'
+
+		if ! CHECK_SCRIPT "$localepkg"; then # Verificando a syntax do script 
+			ERROR='1'
+			pkgfail+=("$PKG")
+		fi
+
+		if [ "$ERROR" = '0' ]; then # Caso de erro na função anterior tudo vai ser ignorado
+				if [ -f "$fakeroot_dir/$name-$version.lala.tar.gz" ] && [ "$noask" != '1' ]; then # Detectando se um pacote do mesmo software que ja foi compilado antes existe 
+					while true; do																# e verificando se o usuario usou --noask
+						echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Precompiled package of ${GREEN}$name${NC} was found. ${YELLOW}Do you want to recompile it?${NC} ${GREEN}Y${NC}/${RED}n${NC} "
+						read INPUT
+						echo
+						case "$INPUT" in
+							Y|y|'')
+								COMPILE='1'
+								break
+							;;
+
+							N|n)
+								if ! INSTALL "$fakeroot_dir/$name-$version.lala.tar.gz"; then # Caso a função falhe em algum ponto
+									ERROR='1'
+									pkgfail+=("$PKG")
+									COMPILE='0'
+								fi
+								COMPILE='0'
+								break
+							;;
+
+							*)
+								continue
+							;;
+						esac
+					done
+				fi
+
+			if [ "$COMPILE" = '1' ] && [ "$ERROR" = '0' ]; then
+				if EMERGE "$localepkg"; then # Caso a função falhe em algum ponto
+					if [ "$use_tools" = 'Y' ]; then  # Verificando se o mantenedor do script colocou para usar as ferramentas createpkg e install para salvar os arquivos baixados na world
+						CALL_FUNC=("CREATEPKG" "INSTALL") # Funções que seram chamadas
+						for callfunc in "${CALL_FUNC[@]}"; do
+							if [ "$callfunc" = "INSTALL" ]; then # Verificando se a função é a INSTALL pq ela recebe um parametro
+								if ! "$callfunc" "$newpkg"; then # Verificando se ela retorna algo diferente de 0
+									ERROR='1'
+									pkgfail+=("$1")
+									break
+								fi
+							else
+								if ! "$callfunc"; then # Caso a função retorne qualquer coisa diferente de 0
+									ERROR='1'
+									pkgfail+=("$1")
+									break
+								fi
+							fi
+						done
+					else
+						echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: The 'use_tools' variable has been disabled by the script maintainer. This package may become obsolete on the system" # Caso a variavel use_tools seja N vai executar esse echo
+					fi 
+				else
+					ERROR='1'
+				fi
+			fi
+		fi
+
+		case "$ERROR" in
+			0)
+				return 0
+			;;
+
+			1)
+				pkgfail+=("$PKG")
+				return 1
+			;;
+		esac
+	fi
+}
+
+RESOLV_DEPS()
+{
+	# Função de resolução de dep bem simples
+	# Função vai ser melhorada com o tempo
+	local DEPS_FILE="$1/DEPS"
+	local PKG="$2"
+	local DEPS_LIST=()
+
+	echo -e "=== ${GREEN}Resolving necessary dependencies for${NC}: $2"
+	echo
+	
+	sleep 0.6
+	
+	if [ -f "$DEPS_FILE" ]; then # Verficando se o pacote tem deps
+		while IFS= read thedep; do # While recebendo uma lista
+			if [ ! -f "$world_dir/$thedep.world" ]; then # Caso a dep nao esteja no sistema vai ser adicionado a lista de deps que precisam ser instaladas
+				DEPS_LIST+=("$thedep") # Adicionando dep que precisa ser instalada
+			fi
+		done < "$DEPS_FILE" # Lista que está sendo entregue ao while
+	else
+		return 0
+	fi
+
+	for dep in "${DEPS_LIST[@]}"; do # Loop for que vai fazer o pacote de baixar todas as deps da lista
+		INSTALL_PKG "$dep"
+		if [ "$ERROR" = '0' ]; then	 # Se tudo ocorrer bem a dep vai ser marcada como instalada
+			instdep+=("$dep Dependency of -> $2") # Jogando a dep que foi instalada com sucesso para array
+		fi
+	done
+
+	case "$ERROR" in # Verificando a o valor de ERROR
+		0)
+			return 0
+		;;
+
+		1) 
+			echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Package ${GREEN}$2${NC} was not installed because not all dependencies were downloaded successfully" 
+			sleep 1 # Caso ocorra algum erro na instalação ou na compilação de alguma dep o pacote principal nao será baixado
+			return 1
+		;;
+	esac
+}
+
+INSTALLED_INFO()
+{
+	if [ -n "${pkginst[0]}" ]; then # Verificando se algum pacote foi instalado
+		echo
+		echo -e ">>> ${GREEN}INSTALLED PACKAGES${NC}: "
+		echo
+		for inst in "${pkginst[@]}"; do # Loop para pegar os elementos do array pkginst
+			echo -e "${GREEN}*${NC} $inst"
+			echo
+		done
+	fi
+
+	if [ -n "${pkgfail[0]}" ]; then # Verificando se algum pacote falhou
+		echo
+		echo -e ">>> ${RED}FAIL PACKAGES${NC}:"
+		echo
+		for fail in "${pkgfail[@]}"; do # Loop para pegar os elementos do array pkgfails
+			echo -e " ${RED}*${NC} $fail"
+			echo
+		done
+	fi
+
+	if [ -n "${instdep[0]}" ]; then # Verificando se alguma dep foi baixada
+		echo
+		echo -e ">>> ${YELLOW}DEPS INSTALLED${NC}: "
+		echo
+		for deps in "${instdep[@]}"; do # Loop para pegar os elementos do array instdeps
+			echo -e " ${YELLOW}*${NC} $deps"
+			echo
+		done
+	fi
+}
 
 #|==============================| MAIN
 [ -z "$1" ] && echo "Version: $VERSION" && echo -e "${RED}>>>${NC} Use -h or --help and have fun!" && exit 1 # Verificando se o usuario colocou algum argumento na chamado do lalapkg
+
+for args in "$@"; do # Loop para ver se o usuario usou --noask
+	if [ "$args" = '--noask' ]; then # esse loop vai ser substituido em breve
+		noask='1'
+	fi
+done
 
 case "$1" in
 	--emerge)
@@ -520,39 +676,22 @@ case "$1" in
 
 		pkginst=() # Declarando array dos pacotes que foram instalados
 		pkgfail=() # Declarando array dos pacotes que falharam
+		instdep=() # Declarando array das deps instaladas
 
 		[ -z "$1" ] && echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Specify package name" && exit 1 # Verifica se o usuario colocou algum nome de algum pacote
-
-		while [ -n "$1" ]; do # While principal
-			if [ -f "$world_dir/$1.world" ]; then # Verificando se o pacote ja foi instalado no sistema
+		
+		if [ "$noask" != '1' ]; then 
+			if [ -f "$world_dir/$1.world" ]; then	# Vendo se o pacote está instalado
 				while true; do # Loop principal da case de perguntas
 					echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Package ${GREEN}$1${NC} is installed on your system. ${YELLOW}Do you want to continue anyway?${NC} ${GREEN}y${NC}/${RED}N${NC} "
 					read INPUT
-
 					case "$INPUT" in
 						Y|y)
 							break
 						;;
-
+			
 						N|n|'')
-							if [ -n "${pkginst[0]}" ]; then # So vai cair aqui se algum pacote foi instalado
-                        					echo
-                        					echo -e ">>> ${GREEN}INSTALLED PACKAGES${NC}: "
-                        					for inst in "${pkginst[@]}"; do # Loop que mostra todos os pacotes que foram instalados
-                                					echo
-                                					echo -e "${GREEN}*${NC} $inst"
-                        					done
-                					fi
-
-                					if [ -n "${pkgfail[0]}" ]; then # So vai cair aqui se algum pacote falhou 
-                        					echo
-                        					echo -e ">>> ${RED}FAIL PACKAGES${NC}:"
-                        					for fail in "${pkgfail[@]}"; do # Loop que mostra todos os pacotes que falharam
-                                					echo
-                                					echo -e " ${RED}*${NC} $fail"
-                        					done
-                					fi
-
+							INSTALLED_INFO # Chamando função que mostra uma info geral da instalação de tudo
 							exit 0
 						;;
 
@@ -562,108 +701,26 @@ case "$1" in
 					esac
 				done
 			fi
+		fi
 
-			if ! CHECK_PKG "$1"; then # Verificando se o script existe e pegando sua localização que fica armazenada em localepkg
-				echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$1${NC} not found in any repository"
-				pkgfail+=("$1") # Se algum pacote nao foi instalado com
-			else
-				ERROR='0'
-				SomeInst='0'
-
-				if ! CHECK_SCRIPT "$localepkg"; then # Verificando a syntax do script 
-					ERROR='1'
-					pkgfail+=("$1")
-				fi
-
-				if [ "$ERROR" = '0' ]; then # Caso de erro na função anterior tudo vai ser ignorado
-					if [ -f "$fakeroot_dir/$name-$version.lala.tar.gz" ]; then # Detectando se um pacote do mesmo software que ja foi compilado antes existe
-						while true; do
-							echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Precompiled package of ${GREEN}$name${NC} was found. ${YELLOW}Do you want to recompile it?${NC} ${GREEN}Y${NC}/${RED}n${NC} "
-							read input
-
-							case "$input" in
-								Y|y|'')
-                                        				if ! EMERGE "$localepkg"; then # Caso a função falhe em algum ponto
-										ERROR='1'
-                                                				pkgfail+=("$1")
-										break
-                                        				fi
-
-									break
-								;;
-
-								N|n)
-									SomeInst='1'
-									if ! INSTALL "$fakeroot_dir/$name-$version.lala.tar.gz"; then # Caso a função falhe em algum ponto
-										ERROR='1'
-										pkgfail+=("$1")
-										break
-									fi
-
-									break
-								;;
-
-								*)
-									continue
-								;;
-							esac
-						done
-					else
-                                        	if [ "$ERROR" = '0' ]; then
-							if ! EMERGE "$localepkg"; then # Caso a função falhe em algum ponto
-								ERROR='1'
-                                                		pkgfail+=("$1") 
-							fi
-                                        	fi
+		while [ -n "$1" ]; do # While principal
+			if [ "$1" != '--noask' ]; then # So uma verificação besta para nao retornar erro de nao achar o pacote
+				if ! CHECK_PKG "$1"; then # Verificando se o script existe e pegando sua localização que fica armazenada em localepkg
+					echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$1${NC} not found in any repository"
+					echo
+					pkgfail+=("$1") # Se algum pacote nao foi instalado com sucesso
+				else
+					if RESOLV_DEPS "$localepkg" "$1"; then # Chamando função de resolver deps
+						if INSTALL_PKG "$1"; then # Caso todas as deps sejam baixadas o pacote principal sera instalado
+							pkginst+=("$1") # Se tudo ocorrer bem na compilação e instalação o pacote é adicionado a lista de instalações concluidas
+						fi
 					fi
 				fi
-
-				if [ "$ERROR" = '0' ] && [ "$SomeInst" = '0' ]; then
-					if [ "$use_tools" = 'Y' ]; then # Verificando se o mantenedor do script colocou para usar as ferramentas createpkg e install para salvar os arquivos baixados na world
-						CALL_FUNC=("CREATEPKG" "INSTALL") # Funções que seram chamadas
-						for callfunc in "${CALL_FUNC[@]}"; do
-							if [ "$callfunc" = "INSTALL" ]; then # Verificando se a função é a INSTALL pq ela recebe um parametro
-								if ! "$callfunc" "$newpkg"; then # Verificando se ela retorna algo diferente de 0
-									ERROR='1'
-                                                			pkgfail+=("$1") # Se falhar vai colocar o nome do pacote em falhou dentro do array pkgfail
-                                               				break # Quebrando o loop
-								fi
-							else
-								if ! "$callfunc"; then # Caso a função retorne qualquer coisa diferente de 0
-									ERROR='1'
-									pkgfail+=("$1") # Se falhar vai colocar o nome do pacote em falhou dentro do array pkgfail
-									break # Quebrando o loop
-								fi
-							fi
-						done
-					else
-						echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: The 'use_tools' variable has been disabled by the script maintainer. This package may become obsolete on the system" # Caso a variavel use_tools seja N vai executar esse echo
-					fi
-				fi
-				[ "$ERROR" = '0' ] && pkginst+=("$1") # Se tudo ocorrer bem o nome do pacote instalado vai para a array pkginst
-			fi
+			fi	
 		shift
 		done
 
-		if [ -n "${pkginst[0]}" ]; then # Verificando se algum pacote foi instalado
-			echo
-			echo -e ">>> ${GREEN}INSTALLED PACKAGES${NC}: "
-			echo
-			for inst in "${pkginst[@]}"; do # Loop para pegar os elementos do array pkginst
-				echo -e "${GREEN}*${NC} $inst"
-				echo
-			done
-		fi
-
-		if [ -n "${pkgfail[0]}" ]; then # Verificando se algum pacote falhou
-			echo
-			echo -e ">>> ${RED}FAIL PACKAGES${NC}:"
-			echo
-			for fail in "${pkgfail[@]}"; do # Loop para pegar os elementos do array pkgfails
-				echo -e " ${RED}*${NC} $fail"
-				echo
-			done
-		fi
+		INSTALLED_INFO # Depois de nao existir mais nenhum pacote para instalar essa função é chamada
 	;;
 
 	--unmerge)
@@ -672,51 +729,49 @@ case "$1" in
 		[ -z "$1" ] && echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Specify package name" && exit 1 # Verificando se o usuario especificou algum pacote
 
 		cd "$world_dir" # Indo para o diretorio de world
-		archive="$(ls -l | wc -l)" # Pegando quantidade de arquivos no diretorio o uso de ls nao é recomendado para isso mas faz seu papel nesse caso
+		archive="$(ls -l | wc -l)" # Pegando quantidade de arquivos no diretorio o uso de ls nao é recomendado para isso mas faz seu papel muito bem nesse caso
 		try='1' 
 		while [ -n "$1" ]; do # Loop while principal do --unmerge para verificar se existe mais algum pacote para remover
-			for rv in *; do 
-				[ "$try" -gt "$archive" ] && echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$1${NC} is not installed" && shift # Verifica se o numeros de tentativas é maior que o numero de arquivo no diretorio se for é declarado que o arquivo nao existe
-				[ -z "$1" ] && break # Verifica se tem mais algum pacote pra remover se nao tiver o loop é quebrado
+				for rv in *; do 
+					[ "$try" -gt "$archive" ] && echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$1${NC} is not installed" && shift # Verifica se o numeros de tentativas é maior que o numero de arquivo no diretorio se for é declarado que o arquivo nao existe
+					[ -z "$1" ] && break # Verifica se tem mais algum pacote pra remover se nao tiver o loop é quebrado
+					if echo "$rv" | grep -wq "$1"; then
+						RMPKG="$1"
+						while true; do # Loop while para pegar um input válido do usuario
+							echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Do you want to unmerge the ${RED}$1${NC} package? ${GREEN}Y${NC}/${RED}n${NC} "
+							read input
 
-				if echo "$rv" | grep -wq "$1"; then
-					RMPKG="$1"
-					while true; do # Loop while para pegar um input válido do usuario
-						echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Do you want to unmerge the ${RED}$1${NC} package? ${GREEN}Y${NC}/${RED}n${NC} "
-						read input
+							case "$input" in # Case usando o input do usuario
+								Y|y|'')
+									echo -e "=== ${GREEN}REMOVING${NC}: $1"
 
-						case "$input" in # Case usando o input do usuario
-							Y|y|'')
-								echo
-								echo -e ">>> ${GREEN}REMOVING${NC}: $1"
-								echo
+									sleep 0.4 # Timer 
 
-								sleep 0.4 # Timer 
+									REMOVEPKG "$rv" || echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Error removing package -> $RMPKG" # Chamando função remove se ela retornar algo diferente de 0 o echo sera executado
 
-								REMOVEPKG "$rv" || echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Error removing package -> $RMPKG" # Chamando função remove se ela retornar algo diferente de 0 o echo sera executado
+									try='1' # Se achar o pacote o valor de try passa a ser 1 novamente para fazer a verificação do proximo pacote caso exista
 
-								try='1' # Se achar o pacote o valor de try passa a ser 1 novamente para fazer a verificação do proximo pacote caso exista
+									shift # Rebaixando argumento
 
-								shift # Rebaixando argumento
+									break # Quebrando loop while de pergunta
+								;;
 
-								break # Quebrando loop while de pergunta
-							;;
+								N|n)
+									try='1' # Caso o usuario nao deseja remover o pacote ele vai ignorar e continuar executando
+									shift # Rebaixa argumento
+									break # Quebra loop while de pergunta
+								;;
 
-							N|n)
-								try='1' # Caso o usuario nao deseja remover o pacote ele vai ignorar e continuar executando
-								shift # Rebaixa argumento
-								break # Quebra loop while de pergunta
-							;;
-
-							*)
-								continue
-							;;
-						esac
-					done
-				else
-					((try++))
-				fi
-			done
+								*)
+									continue
+								;;
+							esac
+						done
+					else
+						((try++)) # Por incrível que pareça essa variavel resolve um bug dessa parte
+						# Talvez não seja a melhor maneira de resolver mas está funcionando até o momento
+					fi
+				done
 		done
 	;;
 
@@ -762,6 +817,6 @@ case "$1" in
 
 	*)
 		HELP # Se nenhum argumento passado pelo usuario for valido ele vai cair nesse bloco e chamar o menu de uso
-		exit 0
+		exit 1
 	;;
 esac
