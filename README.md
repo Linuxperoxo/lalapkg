@@ -9,7 +9,7 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 2.0:
 - Função sync adicionada
 - Função info adicionada
-- Melhorias no código focando na eficiência
+- Melhoria geral no código 
 - Função cleardir adicionada
 - Melhora no menu help
 - Suporte ao sync via git ou http (servidor próprio não está disponível para todo o público, apenas localhost)
@@ -32,7 +32,7 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 - Função --noask adicionada
 - Nova configuração 'root_dir' em lalapkg.conf
 - Correções de bugs
-- Melhorias no código
+- Pequenas melhorias no código
 
 ## Instalar
 
