@@ -7,7 +7,7 @@
 #| AUTOR                                                              |
 #|   	Linuxperoxo                                                   |
 #| VERSÂO                                                             |
-#|   	2.3                                                           |
+#|   	2.3.1                                                         |
 #| DESCRIÇÂO                                                          |
 #|	Um gerenciador de pacotes simples, focado no minimalismo e na |
 #|simplicidade, compatível com praticamente qualquer distribuição que |
@@ -22,7 +22,7 @@ export LC_ALL=C
 export LANG=C
 
 # Versão
-VERSION='2.3:D'
+VERSION='2.3.1 :D'
 
 # Variavel apenas para pegar input do usuario usando o read :^)
 INPUT='0'
