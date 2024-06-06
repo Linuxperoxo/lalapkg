@@ -4,12 +4,12 @@
 
 Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, compatível com praticamente qualquer distribuição que utilize o bash como shell padrão. No momento, o gerenciador está concentrado na compilação de todos os pacotes.
 
-## Changelog
+## Log de Alterações
 
 2.0:
 - Função sync adicionada
 - Função info adicionada
-- Melhoria geral no código 
+- Melhorias no código focando na eficiência
 - Função cleardir adicionada
 - Melhora no menu help
 - Suporte ao sync via git ou http (servidor próprio não está disponível para todo o público, apenas localhost)
@@ -24,15 +24,18 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 - Parâmetros --version adicionado
 
 2.3:
-- Simples resolução de dependências
-- Nova configuração 'root_dir' em lalapkg.conf
-- Fakeroot adicionado (Fakeroot serve para você 'mentir' o
-  diretório raiz do seu sistema. Se você passar '/tmp/fakeroot'
-  para a variável 'root_dir' no arquivo 'lalapkg.conf', '/tmp/fakeroot'
-  será tratada como '/'. Isso facilita bastante na "compilação cruzada")
+- Simples resolução de Dependências
+- Fakeroot adicionado (Fakeroot serve para você 'mentir' o 
+  diretório raiz do seu sistema. Se você passar '/tmp/fakeroot' 
+  para a variável 'root_dir' no arquivo 'lalapkg.conf', '/tmp/fakeroot' 
+  será tratada como '/'. Isso facilita bastante na compilação cruzada)
 - Função --noask adicionada
 - Correções de bugs
-- Pequenas melhorias no código
+- Melhorias no código
+
+2.3.1:
+- Correção de bugs
+- Melhoria em algumas partes do código
 
 ## Instalar
 
@@ -60,7 +63,6 @@ cd /opt/lalapkg
 - --info <pacote>: Exibe informações sobre um pacote
 - --cleardir: Limpa os diretórios desnecessários
 - --search <pacote>: Procura por um pacote
-- --noask Todas as perguntas são ignoradas
 
 ## Licença
 

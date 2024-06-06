@@ -7,7 +7,7 @@
 #| AUTOR                                                              |
 #|   	Linuxperoxo                                                   |
 #| VERSÂO                                                             |
-#|   	2.2                                                           |
+#|   	2.3                                                           |
 #| DESCRIÇÂO                                                          |
 #|	Um gerenciador de pacotes simples, focado no minimalismo e na |
 #|simplicidade, compatível com praticamente qualquer distribuição que |
@@ -43,7 +43,7 @@ downloader_method="wget"
 
 #|==============================| LOAD CONFIG
 # Carregando arquivo de configuração
-if ! . /etc/lalapkg.conf; then
+if ! . ./lalapkg.conf; then
 	echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: lalapkg.conf not found" # Se o arquivo de configuração nao existir vai cair dentro do if
 	exit 1
 fi
@@ -151,11 +151,11 @@ HELP()
     	echo -e "  ${GREEN}--emerge${NC} ${RED}<package1> <package2>${NC} ...  ${YELLOW}Install package(s)${NC}"
     	echo -e "  ${GREEN}--unmerge${NC} ${RED}<package1> <package2>${NC} ... ${YELLOW}Remove package(s)${NC}"
     	echo -e "  ${GREEN}--sync${NC}                              ${YELLOW}Sync with repository${NC}"
-		echo -e "  ${GREEN}--info${NC} ${RED}<package>${NC}                    ${YELLOW}Display information about a package${NC}"
+	echo -e "  ${GREEN}--info${NC} ${RED}<package>${NC}                    ${YELLOW}Display information about a package${NC}"
     	echo -e "  ${GREEN}--cleardir${NC}                          ${YELLOW}Clean up unnecessary files in directories${NC}"
     	echo -e "  ${GREEN}--search${NC} ${RED}<package>${NC}                  ${YELLOW}Search for a package${NC}"
-		echo -e "  ${GREEN}--noask${NC} ${YELLOW} ${YELLOW}Questions will be ignored(s)${NC}"
-		echo -e "  	${YELLOW}EXAMPLE${NC}:${GREEN}--emerge --noask${NC} ${RED}<package1> <package2>${NC}"
+	echo -e "  ${GREEN}--noask${NC} ${YELLOW}Questions will be ignored(s)${NC}"
+	echo -e "  	${YELLOW}EXAMPLE${NC}:${GREEN}--emerge --noask${NC} ${RED}<package1> <package2>${NC}"
 }
 
 CLEARDIR()
@@ -190,8 +190,6 @@ CHECK_SCRIPT()
 	local CHECK_VAR=("$name" "$version" "$extension" "$source_url" "$use_tools")
 	local NAME_VAR=('name' 'version'  'extension' 'source_url' 'use_tools')
 	local index='-1'
-
-	unset TAR # Não dar unset nessa variavel prejudica os outros pacotes que estao na fila
 
 	for f in "${CHECK_VAR[@]}"; do
 		((index++))
@@ -392,15 +390,15 @@ REMOVEPKG()
 	local PKG="$1"
 
 	while IFS= read thefile; do # Loop while recebendo uma lista que no caso é um .world
-		if [ -f "$root_dir/$thefile" ]; then # Se ele é um file
-			rm "$root_dir/$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}DELETED${NC}: ${RED}$thefile${NC}"
-		elif [ -L "$root_dir/$thefile" ]; then # Se ele é um link
-			unlink "$root_dir/$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}UNLINK${NC}: ${RED}$thefile${NC}"
+		if [ -f "$root_dir$thefile" ]; then # Se ele é um file
+			rm "$root_dir$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}DELETED${NC}: ${RED}$thefile${NC}"
+		elif [ -L "$root_dir$thefile" ]; then # Se ele é um link
+			unlink "$root_dir$thefile" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}UNLINK${NC}: ${RED}$thefile${NC}"
 		fi
 	done < "$PKG" # Lista que esta sendo usada
 
 	while IFS= read thedir; do  # Loop while recebendo uma lista que no caso é um .world
-		rm -d "$thedir" 1> /dev/null 2> /dev/null && echo ">>> ${YELLOW}DELETED DIRECTORY${NC}: ${RED}$thedir${NC}" # Deletando por fim os diretorios
+		rm -d "$root_dir$thedir" 1> /dev/null 2> /dev/null && echo -e ">>> ${YELLOW}DELETED DIRECTORY${NC}: ${RED}$thedir${NC}" # Deletando por fim os diretorios
 	done < "$PKG"
 
 	rm "$PKG" # Removendo o .world
@@ -491,6 +489,8 @@ EMERGE()
 
 	cd "$source_dir"
 
+	unset TAR # Não dar unset nessa variavel prejudica os outros pacotes que estao na fila
+
 	[ -d "$name-$version" ] && rm -rf "$name-$version" # Verificando se ficou arquivos no sistema do usuario 
 
 	return 0
@@ -499,7 +499,7 @@ EMERGE()
 INSTALL_PKG()
 {
 	local PKG="$1"
-	
+
 	if ! CHECK_PKG "$PKG"; then # Verificando se o script existe e pegando sua localização que fica armazenada em localepkg
 		echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$PKG${NC} not found in any repository"
 		echo
@@ -513,9 +513,7 @@ INSTALL_PKG()
 		if ! CHECK_SCRIPT "$localepkg"; then # Verificando a syntax do script 
 			ERROR='1'
 			pkgfail+=("$PKG")
-		fi
-
-		if [ "$ERROR" = '0' ]; then # Caso de erro na função anterior tudo vai ser ignorado
+		else
 				if [ -f "$fakeroot_dir/$name-$version.lala.tar.gz" ] && [ "$noask" != '1' ]; then # Detectando se um pacote do mesmo software que ja foi compilado antes existe 
 					while true; do																# e verificando se o usuario usou --noask
 						echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Precompiled package of ${GREEN}$name${NC} was found. ${YELLOW}Do you want to recompile it?${NC} ${GREEN}Y${NC}/${RED}n${NC} "
@@ -565,7 +563,7 @@ INSTALL_PKG()
 						done
 					else
 						echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: The 'use_tools' variable has been disabled by the script maintainer. This package may become obsolete on the system" # Caso a variavel use_tools seja N vai executar esse echo
-					fi 
+					fi
 				else
 					ERROR='1'
 				fi
@@ -593,11 +591,12 @@ RESOLV_DEPS()
 	local PKG="$2"
 	local DEPS_LIST=()
 
+	echo
 	echo -e "=== ${GREEN}Resolving necessary dependencies for${NC}: $2"
 	echo
-	
+
 	sleep 0.6
-	
+
 	if [ -f "$DEPS_FILE" ]; then # Verficando se o pacote tem deps
 		while IFS= read thedep; do # While recebendo uma lista
 			if [ ! -f "$world_dir/$thedep.world" ]; then # Caso a dep nao esteja no sistema vai ser adicionado a lista de deps que precisam ser instaladas
@@ -620,7 +619,7 @@ RESOLV_DEPS()
 			return 0
 		;;
 
-		1) 
+		1)
 			echo -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Package ${GREEN}$2${NC} was not installed because not all dependencies were downloaded successfully" 
 			sleep 1 # Caso ocorra algum erro na instalação ou na compilação de alguma dep o pacote principal nao será baixado
 			return 1
@@ -679,8 +678,8 @@ case "$1" in
 		instdep=() # Declarando array das deps instaladas
 
 		[ -z "$1" ] && echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Specify package name" && exit 1 # Verifica se o usuario colocou algum nome de algum pacote
-		
-		if [ "$noask" != '1' ]; then 
+
+		if [ "$noask" != '1' ]; then
 			if [ -f "$world_dir/$1.world" ]; then	# Vendo se o pacote está instalado
 				while true; do # Loop principal da case de perguntas
 					echo -n -e ">>> [${YELLOW}***${NC}] ${YELLOW}WARNING${NC}: Package ${GREEN}$1${NC} is installed on your system. ${YELLOW}Do you want to continue anyway?${NC} ${GREEN}y${NC}/${RED}N${NC} "
@@ -689,7 +688,7 @@ case "$1" in
 						Y|y)
 							break
 						;;
-			
+
 						N|n|'')
 							INSTALLED_INFO # Chamando função que mostra uma info geral da instalação de tudo
 							exit 0
@@ -716,7 +715,7 @@ case "$1" in
 						fi
 					fi
 				fi
-			fi	
+			fi
 		shift
 		done
 
@@ -730,9 +729,9 @@ case "$1" in
 
 		cd "$world_dir" # Indo para o diretorio de world
 		archive="$(ls -l | wc -l)" # Pegando quantidade de arquivos no diretorio o uso de ls nao é recomendado para isso mas faz seu papel muito bem nesse caso
-		try='1' 
+		try='1'
 		while [ -n "$1" ]; do # Loop while principal do --unmerge para verificar se existe mais algum pacote para remover
-				for rv in *; do 
+				for rv in *; do
 					[ "$try" -gt "$archive" ] && echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Package ${GREEN}$1${NC} is not installed" && shift # Verifica se o numeros de tentativas é maior que o numero de arquivo no diretorio se for é declarado que o arquivo nao existe
 					[ -z "$1" ] && break # Verifica se tem mais algum pacote pra remover se nao tiver o loop é quebrado
 					if echo "$rv" | grep -wq "$1"; then
@@ -745,7 +744,7 @@ case "$1" in
 								Y|y|'')
 									echo -e "=== ${GREEN}REMOVING${NC}: $1"
 
-									sleep 0.4 # Timer 
+									sleep 0.4 # Timer
 
 									REMOVEPKG "$rv" || echo -e ">>> [${RED}***${NC}] ${RED}ERROR${NC}: Error removing package -> $RMPKG" # Chamando função remove se ela retornar algo diferente de 0 o echo sera executado
 
