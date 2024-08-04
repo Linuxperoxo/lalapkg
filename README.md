@@ -40,14 +40,15 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 ## Instalar
 
   ```sh 
-  cd /opt
-  git clone https://github.com/Linuxperoxo/lalapkg.git
-  cd lalapkg
-  chmod +x install.sh
+    cd /opt
+    git clone https://github.com/Linuxperoxo/lalapkg.git
+    cd lalapkg
+    chmod +x install.sh
   ./install.sh --install
+
 ## Remover
 
-  cd /opt/lalapkg
+cd /opt/lalapkg
 
 ./install.sh --remove
 
