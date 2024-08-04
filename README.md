@@ -39,6 +39,7 @@ Um gerenciador de pacotes simples, focado no minimalismo e na simplicidade, comp
 
 ## Instalar
 
+```sh 
 cd /opt
 
 git clone https://github.com/Linuxperoxo/lalapkg.git
